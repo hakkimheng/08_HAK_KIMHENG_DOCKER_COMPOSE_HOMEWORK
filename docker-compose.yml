@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+    container_name: demo-student-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-demo-student:5432/api-db
+      SPRING_DATASOURCE_USERNAME: kimheng
+      SPRING_DATASOURCE_PASSWORD: 1234
+
+  db:
+    image: postgres:16
+    ports:
+      - "5433:5432"
+    container_name: db-demo-student
+    environment:
+      POSTGRES_DB: api-db
+      POSTGRES_USER: kimheng
+      POSTGRES_PASSWORD: 1234
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  rabitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-demo-student
+    ports:
+      - "15672:15672"  # RabbitMQ Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: kimheng
+      RABBITMQ_DEFAULT_PASS: 1234
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio-demo-student
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: kimheng
+      MINIO_ROOT_PASSWORD: Kimheng!123
+
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: keycloak-demo-student
+    command: start-dev
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: db-keycloak
+      DB_PORT: 5434
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: keycloak123
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./certs:/etc/x509/https:ro
+    depends_on:
+      - db-keycloak
+
+  db-keycloak:
+    image: postgres:16
+    ports:
+      - "5434:5432"
+    container_name: db-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak123
+    volumes:
+      - db_keycloak_data:/var/lib/postgresql/data
+
+
+volumes:
+  db_keycloak_data:
+  db_data:
